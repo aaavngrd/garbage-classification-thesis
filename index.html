@@ -20,7 +20,6 @@
   <meta property="og:title"       content="Система класифікації сміття на основі машинного навчання" />
   <meta property="og:description" content="Бакалаврська робота: автоматична класифікація відходів за допомогою глибокого навчання. PyTorch + FastAPI." />
   <meta property="og:locale"      content="uk_UA" />
-
   <meta name="twitter:card"        content="summary" />
   <meta name="twitter:title"       content="Система класифікації сміття" />
   <meta name="twitter:description" content="Бакалаврська робота. PyTorch + FastAPI. 5 категорій відходів." />
@@ -44,284 +43,756 @@
   <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16x16.png" />
   <link rel="manifest" href="icons/site.webmanifest" />
 
-  <!-- ===== CSS RESET ===== -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet" />
+
   <style>
+    /* ===== RESET ===== */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { font-size: 16px; scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+    ul, ol { list-style: none; }
+    table { border-collapse: collapse; border-spacing: 0; }
+
+    img, picture, video, canvas, svg {
+      display: block;
+      max-width: 100%;
+      height: auto;
+    }
+
+    :root {
+      --white:        #ffffff;
+      --off:          #f8f9f7;
+      --border:       #e2e6df;
+      --text:         #1a1f18;
+      --muted:        #5a6357;
+      --green:        #2d6a4f;
+      --green-light:  #52b788;
+      --green-pale:   #d8f3dc;
+
+      --font-sans:  'Inter', system-ui, -apple-system, sans-serif;
+      --font-serif: 'Source Serif 4', Georgia, serif;
+
+      --text-xs:   0.75rem;
+      --text-sm:   0.875rem;
+      --text-base: 1rem;
+      --text-lg:   1.125rem;
+      --text-xl:   1.25rem;
+      --text-2xl:  1.5rem;
+      --text-3xl:  1.875rem;
+      --text-4xl:  2.25rem;
+
+      --max-w: 860px;
+      --px:    1.5rem;
+    }
+
     body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont,
-                   'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-      background-color: #ffffff;
-      color: #222222;
-      line-height: 1.5;
+      font-family: var(--font-sans);
+      font-size: var(--text-base);
+      background-color: var(--white);
+      color: var(--text);
+      line-height: 1.65;
       min-height: 100vh;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
     }
-    img, picture, video, canvas, svg { display: block; max-width: 100%; }
+
+
+    h1, h2 {
+      font-family: var(--font-serif);
+      font-weight: 600;
+      line-height: 1.2;
+      color: var(--text);
+      overflow-wrap: break-word;
+    }
+
+    h3 {
+      font-family: var(--font-sans);
+      font-weight: 600;
+      line-height: 1.3;
+      color: var(--text);
+    }
+
+    h1 {
+      font-size: clamp(var(--text-2xl), 4vw, var(--text-4xl));
+      margin-bottom: 0.5rem;
+    }
+
+    h2 {
+      font-size: clamp(var(--text-xl), 3vw, var(--text-3xl));
+      margin-bottom: 1rem;
+    }
+
+    h3 {
+      font-size: var(--text-lg);
+      margin-bottom: 0.4rem;
+    }
+
+    p {
+      font-size: var(--text-base);
+      color: var(--muted);
+      line-height: 1.7;
+      margin-bottom: 0.875rem;
+      overflow-wrap: break-word;
+    }
+
+    p:last-child { margin-bottom: 0; }
+
+    strong { color: var(--text); font-weight: 600; }
+
+    a {
+      color: var(--green);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      transition: color 0.15s ease;
+    }
+
+    a:hover { color: var(--green-light); }
+
+    a:focus-visible {
+      outline: 2px solid var(--green);
+      outline-offset: 3px;
+      border-radius: 2px;
+    }
+
     input, button, textarea, select { font: inherit; }
-    a { color: inherit; text-decoration: none; }
-    ul, ol { list-style: none; }
-    h1, h2, h3, h4, h5, h6 { overflow-wrap: break-word; }
-    p { overflow-wrap: break-word; }
-    table { border-collapse: collapse; border-spacing: 0; }
+
+    .skip-link {
+      position: absolute;
+      top: -100%;
+      left: 0;
+      padding: 0.5rem 1rem;
+      background: var(--green);
+      color: var(--white);
+      text-decoration: none;
+      font-size: var(--text-sm);
+      z-index: 999;
+      border-radius: 0 0 6px 0;
+    }
+    .skip-link:focus { top: 0; }
+
+    /* ===== LAYOUT ===== */
+    .container {
+      max-width: var(--max-w);
+      margin: 0 auto;
+      padding: 0 var(--px);
+    }
+
+    /* ===== HEADER ===== */
+    header {
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .header-inner {
+      max-width: var(--max-w);
+      margin: 0 auto;
+      padding: 0 var(--px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+      gap: 1rem;
+    }
+
+    .logo-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      text-decoration: none;
+      flex-shrink: 0;
+    }
+
+    .logo-wrap img {
+      width: 36px;
+      height: 36px;
+      object-fit: contain;
+      flex-shrink: 0;
+    }
+
+    .logo-wrap span {
+      font-size: var(--text-sm);
+      font-weight: 600;
+      color: var(--green);
+      white-space: nowrap;
+    }
+
+    nav ul {
+      display: flex;
+      gap: 1.25rem;
+    }
+
+    nav a {
+      font-size: var(--text-sm);
+      font-weight: 500;
+      color: var(--muted);
+      text-decoration: none;
+    }
+
+    nav a:hover { color: var(--text); }
+
+    .hero {
+      padding: 3.5rem 0 2.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .hero-badge {
+      display: inline-block;
+      font-size: var(--text-xs);
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      background: var(--green-pale);
+      color: var(--green);
+      padding: 0.3rem 0.75rem;
+      border-radius: 100px;
+      margin-bottom: 1rem;
+    }
+
+    .hero h1 { color: var(--text); }
+
+    .hero-en {
+      font-size: var(--text-base);
+      color: var(--muted);
+      font-style: italic;
+      margin-bottom: 1rem;
+    }
+
+    .hero-meta {
+      font-size: var(--text-sm);
+      color: var(--muted);
+      margin-bottom: 1.5rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-family: var(--font-sans);
+      font-size: var(--text-sm);
+      font-weight: 500;
+      padding: 0.6rem 1.25rem;
+      border-radius: 6px;
+      text-decoration: none;
+      border: 1px solid transparent;
+      transition: all 0.15s ease;
+      cursor: pointer;
+    }
+
+    .btn:focus-visible {
+      outline: 2px solid var(--green);
+      outline-offset: 3px;
+    }
+
+    .btn-primary {
+      background: var(--green);
+      color: var(--white);
+    }
+
+    .btn-primary:hover {
+      background: #245a43;
+      color: var(--white);
+    }
+
+    section {
+      padding: 2.5rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    section:last-child { border-bottom: none; }
+
+    .section-label {
+      font-size: var(--text-xs);
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--green);
+      margin-bottom: 0.4rem;
+    }
+
+    .keywords {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    .kw {
+      font-size: var(--text-sm);
+      color: var(--muted);
+      background: var(--off);
+      border: 1px solid var(--border);
+      padding: 0.3rem 0.7rem;
+      border-radius: 4px;
+    }
+
+    figure {
+      margin: 1.5rem 0 0;
+    }
+
+    figure img {
+      width: 100%; 
+      height: auto;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    figcaption {
+      font-size: var(--text-sm);
+      color: var(--muted);
+      text-align: center;
+      margin-top: 0.5rem;
+    }
+
+    .research-photo {
+      width: 100%;
+      max-height: 400px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      margin-top: 1.5rem;
+    }
+
+    .task-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin-top: 1.25rem;
+    }
+
+    .task-item {
+      display: grid;
+      grid-template-columns: 2rem 1fr;
+      gap: 0.75rem;
+      align-items: start;
+    }
+
+    .task-num {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 50%;
+      background: var(--green-pale);
+      color: var(--green);
+      font-size: var(--text-sm);
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 0.1rem;
+    }
+
+    .task-item p { margin-bottom: 0; }
+
+    .method-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-top: 1.25rem;
+    }
+
+    .method-card {
+      padding: 1.25rem;
+      background: var(--off);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    .method-card p {
+      font-size: var(--text-sm);
+      margin: 0;
+    }
+
+    /* ===== РЕЗУЛЬТАТИ ===== */
+    .results-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      margin-top: 1.25rem;
+    }
+
+    .result-item {
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+      padding: 0.875rem 1rem;
+      background: var(--off);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: var(--text-base);
+      color: var(--muted);
+    }
+
+    .result-check {
+      color: var(--green-light);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .contact-links {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      margin-top: 1.25rem;
+    }
+
+    .contact-link {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.875rem 1rem;
+      background: var(--off);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      text-decoration: none;
+      color: var(--text);
+      font-size: var(--text-sm);
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .contact-link:hover {
+      border-color: var(--green-light);
+      background: var(--green-pale);
+      color: var(--green);
+    }
+
+    .contact-link:focus-visible {
+      outline: 2px solid var(--green);
+      outline-offset: 2px;
+    }
+
+    .link-sub {
+      font-size: var(--text-xs);
+      color: var(--muted);
+      margin-top: 0.1rem;
+    }
+
+    footer {
+      border-top: 1px solid var(--border);
+      background: var(--off);
+    }
+
+    .footer-inner {
+      max-width: var(--max-w);
+      margin: 0 auto;
+      padding: 1.5rem var(--px);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      font-size: var(--text-sm);
+      color: var(--muted);
+    }
+
+
+      .hero { padding: 2rem 0 1.5rem; }
+
+      .footer-inner {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      h1 { font-size: var(--text-2xl); }
+      h2 { font-size: var(--text-xl); }
+
+    .logo-wrap img {
+      -webkit-flex-shrink: 0;
+      flex-shrink: 0;
+    }
   </style>
 </head>
 
 <body>
-  <a href="#main-content"
-     style="position:absolute;top:-100%;left:0;padding:0.5rem 1rem;background:#2d6a4f;color:#fff;text-decoration:none;font-size:0.875rem;z-index:999;"
-     onfocus="this.style.top='0'"
-     onblur="this.style.top='-100%'">
-    Перейти до основного вмісту
-  </a>
 
+  <a href="#main-content" class="skip-link">Перейти до основного вмісту</a>
+
+  <!-- ===== HEADER ===== -->
   <header role="banner">
-    <div>
-      <img
-        src="images/sumdu.jpg"
-        alt="Логотип Сумського державного університету"
-        width="80"
-        height="80"
-      />
-      <span>Сумський державний університет</span>
-    </div>
-    <nav role="navigation" aria-label="Основна навігація">
-      <ul>
-        <li><a href="#about">Актуальність</a></li>
-        <li><a href="#goals">Завдання</a></li>
-        <li><a href="#methodology">Методологія</a></li>
-        <li><a href="#results">Результати</a></li>
-        <li><a href="#contact">Контакти</a></li>
-      </ul>
-    </nav>
-
-    <h1>Система класифікації сміття на основі машинного навчання</h1>
-    <p lang="en">Garbage Classification System Based on Machine Learning</p>
-    <p>Бакалаврська робота · 2026</p>
-  </header>
-
-  <main id="main-content" role="main">
-
-    <section aria-labelledby="desc-heading">
-      <h2 id="desc-heading">Короткий опис</h2>
-
-      <p>
-        Система автоматичної класифікації зображень побутових відходів на основі
-        згорткової нейронної мережі (PyTorch) з REST API інтерфейсом (FastAPI).
-        Розпізнає 5 категорій: папір, пластик, скло, метал, органіка.
-      </p>
-
-      <div role="list" aria-label="Ключові слова">
-        <span role="listitem">Класифікація відходів</span>
-        <span role="listitem">Machine Learning</span>
-        <span role="listitem">PyTorch</span>
-        <span role="listitem">FastAPI</span>
-        <span role="listitem">Transfer Learning</span>
-        <span role="listitem">Computer Vision</span>
-        <span role="listitem">REST API</span>
-        <span role="listitem">torchvision</span>
-      </div>
-
-      <figure aria-labelledby="fig1-caption">
+    <div class="header-inner">
+      <a href="#" class="logo-wrap" aria-label="Сумський державний університет">
         <img
-          src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='130'%3E%3Crect width='700' height='130' rx='10' fill='%23f8f9f7'/%3E%3Ctext x='70' y='60' font-size='38' text-anchor='middle'%3E%F0%9F%93%84%3C/text%3E%3Ctext x='70' y='95' font-size='13' text-anchor='middle' fill='%232d6a4f' font-family='sans-serif'%3E%D0%9F%D0%B0%D0%BF%D1%96%D1%80%3C/text%3E%3Ctext x='210' y='60' font-size='38' text-anchor='middle'%3E%F0%9F%A7%B4%3C/text%3E%3Ctext x='210' y='95' font-size='13' text-anchor='middle' fill='%232d6a4f' font-family='sans-serif'%3E%D0%9F%D0%BB%D0%B0%D1%81%D1%82%D0%B8%D0%BA%3C/text%3E%3Ctext x='350' y='60' font-size='38' text-anchor='middle'%3E%F0%9F%8D%B6%3C/text%3E%3Ctext x='350' y='95' font-size='13' text-anchor='middle' fill='%232d6a4f' font-family='sans-serif'%3E%D0%A1%D0%BA%D0%BB%D0%BE%3C/text%3E%3Ctext x='490' y='60' font-size='38' text-anchor='middle'%3E%F0%9F%A5%AB%3C/text%3E%3Ctext x='490' y='95' font-size='13' text-anchor='middle' fill='%232d6a4f' font-family='sans-serif'%3E%D0%9C%D0%B5%D1%82%D0%B0%D0%BB%3C/text%3E%3Ctext x='630' y='60' font-size='38' text-anchor='middle'%3E%F0%9F%8D%83%3C/text%3E%3Ctext x='630' y='95' font-size='13' text-anchor='middle' fill='%232d6a4f' font-family='sans-serif'%3E%D0%9E%D1%80%D0%B3%D0%B0%D0%BD%D1%96%D0%BA%D0%B0%3C/text%3E%3C/svg%3E"
-          alt="П'ять категорій побутових відходів що класифікує система: папір, пластик, скло, метал, органіка"
-          width="700"
-          height="130"
+          src="images/sumdu.jpg"
+          alt="Логотип СумДУ"
+          width="36"
+          height="36"
+          loading="eager"
         />
-        <figcaption id="fig1-caption">
-          5 категорій відходів які розпізнає система
-        </figcaption>
-      </figure>
+        <span>СумДУ · Бакалаврська робота</span>
+      </a>
 
-    </section>
-
-    <section id="about" aria-labelledby="about-heading">
-      <h2 id="about-heading">Актуальність теми</h2>
-
-      <p>
-        Неправильне сортування побутових відходів залишається однією з ключових
-        екологічних проблем сучасності. Більшість систем сортування на сміттєзвалищах
-        виконуються вручну — це повільно, дорого та залежить від людського фактору.
-      </p>
-      <p>
-        Автоматизована система класифікації на основі нейронних мереж дозволяє
-        значно пришвидшити та здешевити процес сортування, підвищити точність
-        розпізнавання і знизити навантаження на операторів.
-      </p>
-      <p>
-        Проєкт надає REST API який можна інтегрувати у виробничі конвеєрні системи
-        або мобільні застосунки для підтримки роздільного збору відходів громадянами.
-      </p>
-
-      <figure aria-labelledby="fig2-caption">
-        <img
-          src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='80'%3E%3Crect width='600' height='80' rx='8' fill='%23f8f9f7'/%3E%3Crect x='20' y='20' width='120' height='40' rx='6' fill='%23d8f3dc'/%3E%3Ctext x='80' y='45' font-size='12' text-anchor='middle' fill='%232d6a4f' font-family='sans-serif'%3E%D0%97%D0%BE%D0%B1%D1%80%D0%B0%D0%B6%D0%B5%D0%BD%D0%BD%D1%8F%3C/text%3E%3Ctext x='155' y='44' font-size='18' fill='%232d6a4f'%3E%E2%86%92%3C/text%3E%3Crect x='175' y='20' width='120' height='40' rx='6' fill='%23d8f3dc'/%3E%3Ctext x='235' y='38' font-size='12' text-anchor='middle' fill='%232d6a4f' font-family='sans-serif'%3ECNN%3C/text%3E%3Ctext x='235' y='53' font-size='11' text-anchor='middle' fill='%232d6a4f' font-family='sans-serif'%3E(PyTorch)%3C/text%3E%3Ctext x='310' y='44' font-size='18' fill='%232d6a4f'%3E%E2%86%92%3C/text%3E%3Crect x='330' y='20' width='120' height='40' rx='6' fill='%23d8f3dc'/%3E%3Ctext x='390' y='38' font-size='12' text-anchor='middle' fill='%232d6a4f' font-family='sans-serif'%3EAPI%3C/text%3E%3Ctext x='390' y='53' font-size='11' text-anchor='middle' fill='%232d6a4f' font-family='sans-serif'%3E(FastAPI)%3C/text%3E%3Ctext x='465' y='44' font-size='18' fill='%232d6a4f'%3E%E2%86%92%3C/text%3E%3Crect x='485' y='20' width='95' height='40' rx='6' fill='%232d6a4f'/%3E%3Ctext x='532' y='38' font-size='12' text-anchor='middle' fill='%23fff' font-family='sans-serif'%3E%D0%A0%D0%B5%D0%B7%D1%83%D0%BB%D1%8C%D1%82%D0%B0%D1%82%3C/text%3E%3Ctext x='532' y='53' font-size='11' text-anchor='middle' fill='%23d8f3dc' font-family='sans-serif'%3EJSON%3C/text%3E%3C/svg%3E"
-          alt="Схема роботи системи: зображення подається на вхід CNN моделі PyTorch, результат повертається через FastAPI у форматі JSON"
-          width="600"
-          height="80"
-        />
-        <figcaption id="fig2-caption">
-          Архітектура системи: від зображення до результату класифікації
-        </figcaption>
-      </figure>
-
-    </section>
-
-    <section id="goals" aria-labelledby="goals-heading">
-      <h2 id="goals-heading">Мета та основні завдання</h2>
-
-      <p>
-        <strong>Мета дослідження:</strong> розробити систему автоматичної класифікації
-        зображень побутових відходів на основі глибокого навчання з REST API інтерфейсом
-        для інтеграції у реальні застосунки.
-      </p>
-
-      <h3>Основні завдання</h3>
-
-      <ol aria-label="Завдання дослідження">
-        <li>
-          <strong>Збір та підготовка датасету.</strong>
-          Формування збалансованого набору зображень відходів (папір, пластик, скло,
-          метал, органіка) з поділом на навчальну, валідаційну та тестову вибірки.
-        </li>
-        <li>
-          <strong>Навчання класифікаційної моделі.</strong>
-          Розробка та навчання CNN на базі PyTorch із застосуванням transfer learning
-          для досягнення високої точності класифікації.
-        </li>
-        <li>
-          <strong>Розробка REST API.</strong>
-          Реалізація FastAPI сервера для HTTP-доступу до моделі з Swagger документацією
-          та підтримкою завантаження зображень.
-        </li>
-        <li>
-          <strong>Тестування та оцінка якості.</strong>
-          Оцінка метрик точності та F1-score на тестовій вибірці.
-        </li>
-        <li>
-          <strong>Документування.</strong>
-          Технічна документація та інструкції з розгортання відповідно
-          до стратегії Release Flow.
-        </li>
-      </ol>
-
-    </section>
-
-    <section id="methodology" aria-labelledby="method-heading">
-      <h2 id="method-heading">Методологія дослідження</h2>
-
-      <ul aria-label="Методи дослідження">
-        <li>
-          <h3>Transfer Learning</h3>
-          <p>
-            Використання попередньо навченої моделі з torchvision як базової архітектури
-            з подальшим донавчанням на цільовому датасеті відходів.
-          </p>
-        </li>
-        <li>
-          <h3>Data Augmentation</h3>
-          <p>
-            Трансформації зображень (поворот, масштабування, зміна яскравості)
-            для збільшення різноманітності навчальних даних та покращення узагальнення.
-          </p>
-        </li>
-        <li>
-          <h3>FastAPI Backend</h3>
-          <p>
-            Асинхронний Python сервер з автоматичною Swagger документацією
-            та підтримкою multipart/form-data для завантаження зображень.
-          </p>
-        </li>
-        <li>
-          <h3>Release Flow (Git)</h3>
-          <p>
-            Стратегія гілкування: короткі feature-гілки від main,
-            явні release-гілки з семантичними тегами версій (v1.0.0, v1.1.0).
-          </p>
-        </li>
-      </ul>
-
-    </section>
-
-    <section id="results" aria-labelledby="results-heading">
-      <h2 id="results-heading">Очікувані результати</h2>
-
-      <ul aria-label="Очікувані результати дослідження">
-        <li>
-          <strong>Навчена нейронна мережа</strong> для класифікації відходів
-          на 5 категорій з достатньою точністю для практичного застосування.
-        </li>
-        <li>
-          <strong>REST API на FastAPI</strong> з Swagger документацією,
-          готовий до інтеграції у сторонні застосунки та системи.
-        </li>
-        <li>
-          <strong>Публічний Git-репозиторій</strong> з документованим процесом
-          розробки згідно Release Flow з тегованими релізами.
-        </li>
-        <li>
-          <strong>Практична основа</strong> для розвитку у напрямку мобільного
-          застосунку або IoT-інтеграції для розумного сортування відходів.
-        </li>
-      </ul>
-
-    </section>
-
-    <section id="contact" aria-labelledby="contact-heading">
-      <h2 id="contact-heading">Контакти та посилання</h2>
-
-      <address>
-        <p>Автор: aaavngrd</p>
-      </address>
-
-      <nav aria-label="Посилання на ресурси проєкту">
+      <nav role="navigation" aria-label="Основна навігація">
         <ul>
-          <li>
-            <a href="https://github.com/aaavngrd/garbage_classification"
-               target="_blank"
-               rel="noopener noreferrer"
-               aria-label="Репозиторій ML проєкту на GitHub (нова вкладка)">
-              GitHub: Репозиторій ML проєкту
-            </a>
-          </li>
-          <li>
-            <a href="https://github.com/aaavngrd/garbage-classification-thesis"
-               target="_blank"
-               rel="noopener noreferrer"
-               aria-label="Репозиторій сайту бакалаврської роботи на GitHub (нова вкладка)">
-              GitHub: Репозиторій сайту
-            </a>
-          </li>
-          <li>
-            <a href="https://github.com/aaavngrd"
-               target="_blank"
-               rel="noopener noreferrer"
-               aria-label="Профіль автора на GitHub (нова вкладка)">
-              Профіль автора: github.com/aaavngrd
-            </a>
-          </li>
+          <li><a href="#about">Актуальність</a></li>
+          <li><a href="#goals">Завдання</a></li>
+          <li><a href="#methodology">Методологія</a></li>
+          <li><a href="#results">Результати</a></li>
+          <li><a href="#contact">Контакти</a></li>
         </ul>
       </nav>
 
+    </div>
+  </header>
+
+  <!-- ===== HERO ===== -->
+  <div class="hero">
+    <div class="container">
+      <span class="hero-badge">Бакалаврська робота · 2026</span>
+      <h1>Система класифікації сміття на основі машинного навчання</h1>
+      <p class="hero-en" lang="en">Garbage Classification System Based on Machine Learning</p>
+      <p class="hero-meta">Автор: aaavngrd · Сумський державний університет</p>
+      <a href="https://github.com/aaavngrd/garbage_classification"
+         class="btn btn-primary"
+         target="_blank"
+         rel="noopener noreferrer"
+         aria-label="Відкрити репозиторій на GitHub (нова вкладка)">
+        GitHub репозиторій →
+      </a>
+    </div>
+  </div>
+
+  <!-- ===== MAIN ===== -->
+  <main id="main-content" role="main">
+
+    <section aria-labelledby="desc-heading">
+      <div class="container">
+        <p class="section-label">Опис</p>
+        <h2 id="desc-heading">Короткий опис</h2>
+        <p>
+          Система автоматичної класифікації зображень побутових відходів на основі
+          згорткової нейронної мережі (PyTorch) з REST API (FastAPI).
+          Розпізнає 5 категорій: папір, пластик, скло, метал, органіка.
+        </p>
+
+        <div class="keywords" role="list" aria-label="Ключові слова">
+          <span class="kw" role="listitem">Класифікація відходів</span>
+          <span class="kw" role="listitem">Machine Learning</span>
+          <span class="kw" role="listitem">PyTorch</span>
+          <span class="kw" role="listitem">FastAPI</span>
+          <span class="kw" role="listitem">Transfer Learning</span>
+          <span class="kw" role="listitem">Computer Vision</span>
+          <span class="kw" role="listitem">REST API</span>
+          <span class="kw" role="listitem">torchvision</span>
+        </div>
+
+        <figure aria-labelledby="fig1-caption">
+          <img
+            src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='130'%3E%3Crect width='700' height='130' rx='10' fill='%23f8f9f7'/%3E%3Ctext x='70' y='60' font-size='38' text-anchor='middle'%3E%F0%9F%93%84%3C/text%3E%3Ctext x='70' y='95' font-size='13' text-anchor='middle' fill='%232d6a4f' font-family='sans-serif'%3E%D0%9F%D0%B0%D0%BF%D1%96%D1%80%3C/text%3E%3Ctext x='210' y='60' font-size='38' text-anchor='middle'%3E%F0%9F%A7%B4%3C/text%3E%3Ctext x='210' y='95' font-size='13' text-anchor='middle' fill='%232d6a4f' font-family='sans-serif'%3E%D0%9F%D0%BB%D0%B0%D1%81%D1%82%D0%B8%D0%BA%3C/text%3E%3Ctext x='350' y='60' font-size='38' text-anchor='middle'%3E%F0%9F%8D%B6%3C/text%3E%3Ctext x='350' y='95' font-size='13' text-anchor='middle' fill='%232d6a4f' font-family='sans-serif'%3E%D0%A1%D0%BA%D0%BB%D0%BE%3C/text%3E%3Ctext x='490' y='60' font-size='38' text-anchor='middle'%3E%F0%9F%A5%AB%3C/text%3E%3Ctext x='490' y='95' font-size='13' text-anchor='middle' fill='%232d6a4f' font-family='sans-serif'%3E%D0%9C%D0%B5%D1%82%D0%B0%D0%BB%3C/text%3E%3Ctext x='630' y='60' font-size='38' text-anchor='middle'%3E%F0%9F%8D%83%3C/text%3E%3Ctext x='630' y='95' font-size='13' text-anchor='middle' fill='%232d6a4f' font-family='sans-serif'%3E%D0%9E%D1%80%D0%B3%D0%B0%D0%BD%D1%96%D0%BA%D0%B0%3C/text%3E%3C/svg%3E"
+            alt="П'ять категорій побутових відходів: папір, пластик, скло, метал, органіка"
+            width="700"
+            height="130"
+            loading="lazy"
+          />
+          <figcaption id="fig1-caption">5 категорій відходів які розпізнає система</figcaption>
+        </figure>
+
+        <figure aria-labelledby="photo-caption" style="margin-top: 1.5rem;">
+          <img
+            src="images/waste.jpg"
+            alt="Приклад зображення побутових відходів для класифікації системою"
+            class="research-photo"
+            width="860"
+            height="400"
+            loading="lazy"
+          />
+          <figcaption id="photo-caption">
+            Приклад зображення для класифікації
+          </figcaption>
+        </figure>
+
+      </div>
+    </section>
+
+    <section id="about" aria-labelledby="about-heading">
+      <div class="container">
+        <p class="section-label">Актуальність</p>
+        <h2 id="about-heading">Чому це важливо</h2>
+        <p>
+          Неправильне сортування побутових відходів залишається однією з ключових
+          екологічних проблем сучасності. Більшість систем сортування виконуються
+          вручну — це повільно, дорого та залежить від людського фактору.
+        </p>
+        <p>
+          Автоматизована система класифікації на основі нейронних мереж дозволяє
+          пришвидшити та здешевити процес сортування, підвищити точність і знизити
+          навантаження на операторів.
+        </p>
+        <p>
+          Проєкт надає REST API для інтеграції у виробничі конвеєрні системи
+          або мобільні застосунки для підтримки роздільного збору відходів.
+        </p>
+
+        <figure aria-labelledby="fig2-caption">
+          <img
+            src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='80'%3E%3Crect width='600' height='80' rx='8' fill='%23f8f9f7'/%3E%3Crect x='20' y='20' width='120' height='40' rx='6' fill='%23d8f3dc'/%3E%3Ctext x='80' y='45' font-size='12' text-anchor='middle' fill='%232d6a4f' font-family='sans-serif'%3E%D0%97%D0%BE%D0%B1%D1%80%D0%B0%D0%B6%D0%B5%D0%BD%D0%BD%D1%8F%3C/text%3E%3Ctext x='155' y='44' font-size='18' fill='%232d6a4f'%3E%E2%86%92%3C/text%3E%3Crect x='175' y='20' width='120' height='40' rx='6' fill='%23d8f3dc'/%3E%3Ctext x='235' y='38' font-size='12' text-anchor='middle' fill='%232d6a4f' font-family='sans-serif'%3ECNN%3C/text%3E%3Ctext x='235' y='53' font-size='11' text-anchor='middle' fill='%232d6a4f' font-family='sans-serif'%3E(PyTorch)%3C/text%3E%3Ctext x='310' y='44' font-size='18' fill='%232d6a4f'%3E%E2%86%92%3C/text%3E%3Crect x='330' y='20' width='120' height='40' rx='6' fill='%23d8f3dc'/%3E%3Ctext x='390' y='38' font-size='12' text-anchor='middle' fill='%232d6a4f' font-family='sans-serif'%3EAPI%3C/text%3E%3Ctext x='390' y='53' font-size='11' text-anchor='middle' fill='%232d6a4f' font-family='sans-serif'%3E(FastAPI)%3C/text%3E%3Ctext x='465' y='44' font-size='18' fill='%232d6a4f'%3E%E2%86%92%3C/text%3E%3Crect x='485' y='20' width='95' height='40' rx='6' fill='%232d6a4f'/%3E%3Ctext x='532' y='38' font-size='12' text-anchor='middle' fill='%23fff' font-family='sans-serif'%3E%D0%A0%D0%B5%D0%B7%D1%83%D0%BB%D1%8C%D1%82%D0%B0%D1%82%3C/text%3E%3Ctext x='532' y='53' font-size='11' text-anchor='middle' fill='%23d8f3dc' font-family='sans-serif'%3EJSON%3C/text%3E%3C/svg%3E"
+            alt="Схема: зображення → CNN PyTorch → FastAPI → Результат JSON"
+            width="600"
+            height="80"
+            loading="lazy"
+          />
+          <figcaption id="fig2-caption">Архітектура системи</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section id="goals" aria-labelledby="goals-heading">
+      <div class="container">
+        <p class="section-label">Мета та завдання</p>
+        <h2 id="goals-heading">Основні завдання дослідження</h2>
+        <p>
+          <strong>Мета:</strong> розробити систему автоматичної класифікації
+          зображень побутових відходів на основі глибокого навчання з REST API.
+        </p>
+
+        <ol class="task-list" aria-label="Завдання дослідження">
+          <li class="task-item">
+            <span class="task-num" aria-hidden="true">1</span>
+            <div>
+              <h3>Збір та підготовка датасету</h3>
+              <p>Формування набору зображень відходів з поділом на навчальну, валідаційну та тестову вибірки.</p>
+            </div>
+          </li>
+          <li class="task-item">
+            <span class="task-num" aria-hidden="true">2</span>
+            <div>
+              <h3>Навчання класифікаційної моделі</h3>
+              <p>CNN на базі PyTorch із застосуванням transfer learning для досягнення високої точності.</p>
+            </div>
+          </li>
+          <li class="task-item">
+            <span class="task-num" aria-hidden="true">3</span>
+            <div>
+              <h3>Розробка REST API</h3>
+              <p>FastAPI сервер з Swagger документацією та підтримкою завантаження зображень.</p>
+            </div>
+          </li>
+          <li class="task-item">
+            <span class="task-num" aria-hidden="true">4</span>
+            <div>
+              <h3>Тестування та оцінка якості</h3>
+              <p>Оцінка F1-score на тестовій вибірці.</p>
+            </div>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <section id="methodology" aria-labelledby="method-heading">
+      <div class="container">
+        <p class="section-label">Методологія</p>
+        <h2 id="method-heading">Підхід до дослідження</h2>
+
+        <div class="method-grid" role="list" aria-label="Методи дослідження">
+          <article class="method-card" role="listitem">
+            <h3>Transfer Learning</h3>
+            <p>Попередньо навчена модель torchvision з донавчанням на датасеті відходів.</p>
+          </article>
+          <article class="method-card" role="listitem">
+            <h3>Data Augmentation</h3>
+            <p>Трансформації зображень для збільшення різноманітності навчальних даних.</p>
+          </article>
+          <article class="method-card" role="listitem">
+            <h3>FastAPI Backend</h3>
+            <p>Асинхронний сервер з Swagger документацією та multipart/form-data.</p>
+          </article>
+          <article class="method-card" role="listitem">
+            <h3>Аналіз безпеки</h3>
+            <p>Статичний аналіз коду Bandit для виявлення вразливостей.</p>
+          </article>
+          <article class="method-card" role="listitem">
+            <h3>Release Flow</h3>
+            <p>Feature-гілки від main, release-гілки з тегами версій.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="results" aria-labelledby="results-heading">
+      <div class="container">
+        <p class="section-label">Результати</p>
+        <h2 id="results-heading">Очікувані результати</h2>
+
+        <ul class="results-list" aria-label="Очікувані результати">
+          <li class="result-item">
+            <span class="result-check" aria-hidden="true">✓</span>
+            <span><strong>Навчена нейронна мережа</strong> для класифікації відходів на 5 категорій.</span>
+          </li>
+          <li class="result-item">
+            <span class="result-check" aria-hidden="true">✓</span>
+            <span><strong>REST API на FastAPI</strong> з Swagger документацією.</span>
+          <li class="result-item">
+            <span class="result-check" aria-hidden="true">✓</span>
+            <span><strong>Публічний Git-репозиторій</strong> з Release Flow документацією.</span>
+          </li>
+          <li class="result-item">
+            <span class="result-check" aria-hidden="true">✓</span>
+            <span><strong>Основа для IoT-інтеграції</strong> або мобільного застосунку.</span>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="contact" aria-labelledby="contact-heading">
+      <div class="container">
+        <p class="section-label">Контакти</p>
+        <h2 id="contact-heading">Посилання та контакти</h2>
+
+        <address style="margin-bottom: 1rem;">
+          <p>Автор: aaavngrd · Сумський державний університет · 2026</p>
+        </address>
+
+        <nav class="contact-links" aria-label="Посилання на ресурси проєкту">
+          <a href="https://github.com/aaavngrd/garbage_classification"
+             class="contact-link"
+             target="_blank" rel="noopener noreferrer"
+             aria-label="ML репозиторій на GitHub (нова вкладка)">
+            <span aria-hidden="true">⌨️</span>
+            <div>
+              <div>github.com/aaavngrd/garbage_classification</div>
+              <div class="link-sub">Вихідний код ML проєкту</div>
+            </div>
+          </a>
+          <a href="https://github.com/aaavngrd/garbage-classification-thesis"
+             class="contact-link"
+             target="_blank" rel="noopener noreferrer"
+             aria-label="Репозиторій сайту на GitHub (нова вкладка)">
+            <span aria-hidden="true">🌐</span>
+            <div>
+              <div>github.com/aaavngrd/garbage-classification-thesis</div>
+              <div class="link-sub">Репозиторій цього сайту</div>
+            </div>
+          </a>
+          <a href="https://github.com/aaavngrd"
+             class="contact-link"
+             target="_blank" rel="noopener noreferrer"
+             aria-label="Профіль автора на GitHub (нова вкладка)">
+            <span aria-hidden="true">👤</span>
+            <div>
+              <div>github.com/aaavngrd</div>
+              <div class="link-sub">Профіль автора</div>
+            </div>
+          </a>
+        </nav>
+      </div>
     </section>
 
   </main>
 
   <!-- ===== FOOTER ===== -->
   <footer role="contentinfo">
-    <address>
-      <p>
-        <a href="https://github.com/aaavngrd/garbage_classification"
-           target="_blank"
-           rel="noopener noreferrer"
-           aria-label="Репозиторій на GitHub">
-           GitHub →
-        </a>
-      </p>
-    </address>
-    <p>© 2026 aaavngrd · Бакалаврська робота</p>
+    <div class="footer-inner">
+      <address>
+        <span>© 2026 aaavngrd · Сумський державний університет</span>
+      </address>
+      <a href="https://github.com/aaavngrd/garbage_classification"
+         target="_blank" rel="noopener noreferrer"
+         aria-label="Репозиторій на GitHub">
+        GitHub →
+      </a>
+    </div>
   </footer>
 
 </body>
